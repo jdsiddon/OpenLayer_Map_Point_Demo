@@ -18,19 +18,18 @@
     <script type="text/javascript">
 
     /**
-     * This method converts our normal coordinates, into the projection format
-     *  our map understands.
-     * @function getCoords
+     * This method converts our normal coordinates, into the projection format our map understands.
+     * @function toWebMerc
      * @param coord, an array of coordinates [long, lat]
      * @returns coordinates in defined projection format.
      */
-    function getCoords(coord) {
+    function toWebMerc(coord) {
       return ol.proj.fromLonLat(coord, 'EPSG:3857');
     }
 
-    // Creates an instance of View. Our maps "window".
+    // Creates an instance of View, our maps "window".
     var view = new ol.View({
-      center: getCoords([45, 1]),
+      center: toWebMerc([45, 1]),
       zoom: 1
     });
 
@@ -39,32 +38,18 @@
       source: new ol.source.MapQuest({layer: 'osm'})
     });
 
-    // Creates our Point feature and assigns it a position.
-    var pointFeature = new ol.Feature({
-      name: 'Point',
-      geometry: new ol.geom.Point(
-        getCoords([49, 11])           // Point coords.
-      )
-    });
-
-    // Sets the style of our pointFeature we defined above, without this our Point has no style, so I can't be seen.
-    var pointStyle = new ol.style.Style({
-      image: new ol.style.Icon({
-        anchor: [0.5, 30],
-        anchorXUnits: 'fraction',
-        anchorYUnits: 'pixels',
-        opacity: 1,
-        src: 'icons/red_32.png'
-      })
-    });
-
-    pointFeature.setStyle(pointStyle);        // Attaches our fancy style to our Point.
-
     // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
     // the features of the layer.
     var vectorSource = new ol.source.Vector({
       title: 'Our new vector!',
-      features: [pointFeature]
+      features: [
+        new ol.Feature({                  // Creates our Point feature and assigns it a position.
+          name: 'Point',
+          geometry: new ol.geom.Point(
+            toWebMerc([49, 11])           // Point coords.
+          )
+        })
+      ]
     });
 
     // Creates our Vector layer and adds our vectorSource to it.

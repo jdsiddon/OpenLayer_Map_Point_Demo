@@ -20,6 +20,14 @@
 
     var startingCoords = [49, 11];
 
+    // Basic visible border style. Borders are red.
+    var visibleBorder = new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        width: 4,
+        color: [255, 0, 0, 1]
+      })
+    });
+
     /**
      * This method converts our normal coordinates, into the projection format
      *  our map understands.
@@ -51,7 +59,6 @@
       )
     });
 
-
     // Sets the style of our pointFeature we defined above, without this our Point has no style, so I can't be seen.
     var pointStyle = new ol.style.Style({
       image: new ol.style.Icon({
@@ -62,14 +69,23 @@
         src: 'icons/red_32.png'
       })
     });
-
     pointFeature.setStyle(pointStyle);        // Attaches our fancy style to our Point.
+
+    // Create a blank "multilinestring" feature.
+    // This is the feature we will add the new coordinates to as they move.
+    var lineFeature = new ol.Feature({
+      name: 'Path',
+      geometry: new ol.geom.MultiLineString()
+    });
+    // Add line string to start, REQUIRED for correct init.
+    lineFeature.getGeometry().appendLineString(new ol.geom.LineString(getCoords(startingCoords)));
+    lineFeature.setStyle(visibleBorder);
 
     // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
     // the features of the layer.
     var vectorSource = new ol.source.Vector({
       title: 'Our new vector!',
-      features: [pointFeature]
+      features: [pointFeature, lineFeature]
     });
 
     // Creates our Vector layer and adds our vectorSource to it.
@@ -112,7 +128,7 @@
       if(newLong > 180)
         newLong = -180;
 
-      coords.push([newLong, newLat]);
+      coords.push(getCoords([newLong, newLat])); // Push the coordinates onto our array in Web Mercator.
 
       console.log(coords[coords.length-1][0] + ", " + coords[coords.length-1][1]);
     }
@@ -122,8 +138,37 @@
     }, 2000);
 
     function updatePoint() {
+      var iconGeom = pointFeature.getGeometry();      // Grab player icon feature.
+      var pathGeom = lineFeature.getGeometry();     // Grab line segment feature.
+      var pathCoords = pathGeom.getCoordinates();
+
       newCoordinates(gpsMovement);
-      pointFeature.getGeometry().setCoordinates(getCoords(gpsMovement[gpsMovement.length-1]));        // Update icon coords.
+      var lastMovement = pointFeature.getGeometry().getCoordinates(); // Get last coordinates.
+
+
+      var segment = [
+        gpsMovement[gpsMovement.length-2],                        // Last end point, current start point.
+        gpsMovement[gpsMovement.length-1]                         // New end point.
+      ];
+
+      iconGeom.setCoordinates(gpsMovement[gpsMovement.length-1]);        // Update player icon coords.
+
+      pathCoords.unshift(segment);                // Insert new segment at beginning of path array.
+      pathGeom.setCoordinates(pathCoords);
+
+      // temp = Array();
+      // for(var i = 0; i < gpsMovement.length; i++) {
+      //   temp.push(getCoords(gpsMovement[i]));
+      // }
+      // lineFeature.getGeometry().setCoordinates(temp);
+      // pointFeature.getGeometry().setCoordinates(
+      //   [
+      //     temp
+      //   ]
+      // );        // Update icon coords.
+      // var pathCoords = lineFeature.getGeometry().getCoordinates();
+      //
+      // pathCoords.unshift(gpsMovement[gpsMovement.length-1]);
     }
 
     function GPS() {

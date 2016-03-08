@@ -27,42 +27,29 @@
       return ol.proj.fromLonLat(coord, 'EPSG:3857');
     }
 
-    // Creates an instance of View, our maps "window".
-    var view = new ol.View({
-      center: toWebMerc([45, 1]),
-      zoom: 1
-    });
-
-    // Creates our Tile layer, which handles the actual map imagery so we can see the map.
-    var tileLayer = new ol.layer.Tile({
-      source: new ol.source.MapQuest({layer: 'osm'})
-    });
-
-    // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
-    // the features of the layer.
-    var vectorSource = new ol.source.Vector({
-      title: 'Our new vector!',
-      features: [
-        new ol.Feature({                  // Creates our Point feature and assigns it a position.
-          name: 'Point',
-          geometry: new ol.geom.Point(
-            toWebMerc([49, 11])           // Point coords.
-          )
-        })
-      ]
-    });
-
-    // Creates our Vector layer and adds our vectorSource to it.
-    var vectorLayer = new ol.layer.Vector({
-      source: vectorSource
-    });
-
     // Creates our map, adds our two layers to it, sets our view, and inserts the map into the div with id='map'.
     var map = new ol.Map({
-      view: view,
+      view: new ol.View({             // Creates an instance of View, our maps "window".
+        center: toWebMerc([45, 1]),
+        zoom: 1
+      }),
       layers: [
-        tileLayer,
-        vectorLayer
+        new ol.layer.Tile({
+          source: new ol.source.MapQuest({layer: 'osm'})
+        }),
+        new ol.layer.Vector({               // Creates our Vector layer and adds our vectorSource to it.
+          source: new ol.source.Vector({        // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
+            title: 'Our new vector!',
+            features: [
+              new ol.Feature({                  // Creates our Point feature and assigns it a position.
+                name: 'Point',
+                geometry: new ol.geom.Point(
+                  toWebMerc([49, 11])           // Point coords.
+                )
+              })
+            ]
+          })
+        })
       ],
       target: 'map'
     });

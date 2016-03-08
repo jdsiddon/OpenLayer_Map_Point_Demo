@@ -22,17 +22,27 @@
     /**
      * This method converts our normal coordinates, into the projection format
      *  our map understands.
-     * @function getCoords
+     * @function toWebMerc
      * @param coord, an array of coordinates [long, lat]
      * @returns coordinates in defined projection format.
      */
-    function getCoords(coord) {
+    function toWebMerc(coord) {
       return ol.proj.fromLonLat(coord, 'EPSG:3857');
+    }
+
+    /**
+     * This method converts our web merc coordinates, into the long/lat format.
+     * @function fromWebMerc
+     * @param coord, an array of coordinates [long, lat]
+     * @returns coordinates in defined projection format.
+     */
+    function fromWebMerc(coord) {
+      return ol.proj.toLonLat(coord, 'EPSG:3857');
     }
 
     // Creates an instance of View. Our maps "window".
     var view = new ol.View({
-      center: getCoords([45, 1]),
+      center: toWebMerc([45, 1]),
       zoom: 1
     });
 
@@ -46,7 +56,7 @@
       name: 'Point',
       id: 'LocationPoint',
       geometry: new ol.geom.Point(
-        getCoords(startingCoords)           // Point coords.
+        toWebMerc(startingCoords)           // Point coords.
       )
     });
 
@@ -60,14 +70,13 @@
         src: 'icons/red_32.png'
       })
     });
-
     pointFeature.setStyle(pointStyle);        // Attaches our fancy style to our Point.
 
     // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
     // the features of the layer.
     var vectorSource = new ol.source.Vector({
       title: 'Our new vector!',
-      features: [pointFeature]
+      features: [ pointFeature ]
     });
 
     // Creates our Vector layer and adds our vectorSource to it.
@@ -85,22 +94,39 @@
       target: 'map'
     });
 
-    var gpsMovement = new Array();
-    gpsMovement.push(getCoords(startingCoords));
+
+    function GPSArray(){
+      this.coordinates = new Array();
+    }
+
+    GPSArray.prototype.push = function(coords) {
+      this.coordinates.push(toWebMerc(coords));
+    }
+
+    GPSArray.prototype.peek = function( ) {
+      return this.coordinates[this.coordinates.length-1];
+    }
+
+    var gps = new GPSArray();
+    gps.push(startingCoords);
+
 
     function newCoordinates(coords) {
       var newLong, newLat;
-      var changeLong = Math.random();
-      var changeLat = Math.random();
+      var changeLong = ((Math.random() * 10000) + 500);
+      var changeLat = ((Math.random() * 10000) + 500);
 
       if(Math.floor((Math.random() * 10) + 1) % 3 === 0) {
         changeLong *= -1;
         changeLat *= -1;
       }
 
-      newLong = changeLong + coords[coords.length-1][0];
-      newLat = changeLat + coords[coords.length-1][1];
+      var longLat = fromWebMerc([(changeLong + coords[coords.length-1][0]), (changeLat + coords[coords.length-1][1])]);
 
+      newLong = longLat[0];
+      newLat = longLat[1];
+
+      // Check to see if we need to loop back around the globe.
       if(newLat < -90)
         newLat = 90;
       if(newLat > 90)
@@ -110,14 +136,13 @@
       if(newLong > 180)
         newLong = -180;
 
-      coords.push([newLong, newLat]);
-
       console.log(coords[coords.length-1][0] + ", " + coords[coords.length-1][1]);
+      return [newLong, newLat];
     }
 
     setInterval(function() {
-      newCoordinates(gpsMovement);
-      pointFeature.getGeometry().setCoordinates(getCoords(gpsMovement[gpsMovement.length-1]));        // Update icon coords.
+      gps.push(newCoordinates(gps.coordinates));
+      pointFeature.getGeometry().setCoordinates(gps.peek());        // Update icon coords.
     }, 2000);
 
     </script>

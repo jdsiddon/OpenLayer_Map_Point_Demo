@@ -29,6 +29,7 @@
 
     // Creates our map, adds our two layers to it, sets our view, and inserts the map into the div with id='map'.
     var map = new ol.Map({
+      target: 'map',
       view: new ol.View({             // Creates an instance of View, our maps "window".
         center: toWebMerc([45, 1]),
         zoom: 1
@@ -50,8 +51,7 @@
             ]
           })
         })
-      ],
-      target: 'map'
+      ]
     });
 
     </script>

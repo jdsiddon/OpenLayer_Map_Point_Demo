@@ -47,18 +47,17 @@
       )
     });
 
-    // // Sets the style of our pointFeature we defined above, without this our Point has no style, so I can't be seen.
-    // var pointStyle = new ol.style.Style({
-    //   image: new ol.style.Icon({
-    //     anchor: [0.5, 30],
-    //     anchorXUnits: 'fraction',
-    //     anchorYUnits: 'pixels',
-    //     opacity: 1,
-    //     src: 'icons/red_32.png'
-    //   })
-    // });
-    //
-    // pointFeature.setStyle(pointStyle);        // Attaches our fancy style to our Point.
+    // Sets the style of our pointFeature we defined above.
+    var pointStyle = new ol.style.Style({
+      image: new ol.style.Icon({
+        anchor: [0.5, 30],
+        anchorXUnits: 'fraction',
+        anchorYUnits: 'pixels',
+        opacity: 1,
+        src: 'icons/red_32.png'
+      })
+    });
+    pointFeature.setStyle(pointStyle);        // Attaches our fancy style to our Point.
 
     // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
     // the features of the layer.

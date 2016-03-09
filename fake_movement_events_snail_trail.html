@@ -8,40 +8,42 @@
         width: 100%;
       }
     </style>
-    <script src="http://openlayers.org/en/v3.14.2/build/ol.js" type="text/javascript"></script>
+    <script src="http://openlayers.org/en/v3.14.2/build/ol.js"></script>
     <title>OpenLayers 3 example</title>
   </head>
   <body>
     <h2>Basic Map</h2>
     <div id="map" class="map"></div>
 
-    <script type='text/javascript' src='js/EventEmitter.min.js'></script>
-    <script type="text/javascript">
+    <script src='js/EventEmitter.min.js'></script>
+    <script>
 
     var startingCoords = [49, 11];
-
-    // Basic visible border style. Borders are red.
-    var visibleBorder = new ol.style.Style({
-      stroke: new ol.style.Stroke({
-        width: 4,
-        color: [255, 0, 0, 1]
-      })
-    });
 
     /**
      * This method converts our normal coordinates, into the projection format
      *  our map understands.
-     * @function getCoords
+     * @function toWebMerc
      * @param coord, an array of coordinates [long, lat]
      * @returns coordinates in defined projection format.
      */
-    function getCoords(coord) {
+    function toWebMerc(coord) {
       return ol.proj.fromLonLat(coord, 'EPSG:3857');
+    }
+
+    /**
+     * This method converts our web merc coordinates, into the long/lat format.
+     * @function fromWebMerc
+     * @param coord, an array of coordinates [long, lat]
+     * @returns coordinates in defined projection format.
+     */
+    function fromWebMerc(coord) {
+      return ol.proj.toLonLat(coord, 'EPSG:3857');
     }
 
     // Creates an instance of View. Our maps "window".
     var view = new ol.View({
-      center: getCoords([45, 1]),
+      center: toWebMerc([45, 1]),
       zoom: 1
     });
 
@@ -55,9 +57,10 @@
       name: 'Point',
       id: 'LocationPoint',
       geometry: new ol.geom.Point(
-        getCoords(startingCoords)           // Point coords.
+        toWebMerc(startingCoords)           // Point coords.
       )
     });
+
 
     // Sets the style of our pointFeature we defined above, without this our Point has no style, so I can't be seen.
     var pointStyle = new ol.style.Style({
@@ -71,14 +74,20 @@
     });
     pointFeature.setStyle(pointStyle);        // Attaches our fancy style to our Point.
 
-    // Create a blank "multilinestring" feature.
-    // This is the feature we will add the new coordinates to as they move.
+
+    // Basic visible border style. Borders are red.
+    var visibleBorder = new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        width: 4,
+        color: [255, 0, 0, 1]
+      })
+    });
+
+    // Create a blank "multilinestring" feature
     var lineFeature = new ol.Feature({
       name: 'Path',
-      geometry: new ol.geom.MultiLineString()
+      geometry: new ol.geom.MultiLineString([toWebMerc(startingCoords), toWebMerc(startingCoords)])
     });
-    // Add line string to start, REQUIRED for correct init.
-    lineFeature.getGeometry().appendLineString(new ol.geom.LineString(getCoords(startingCoords)));
     lineFeature.setStyle(visibleBorder);
 
     // Creates our Vector source (not Layer), and adds our Point feature to it. The source needs to contain
@@ -103,22 +112,39 @@
       target: 'map'
     });
 
-    var gpsMovement = new Array();
-    gpsMovement.push(startingCoords);
+
+    function GPSArray(){
+      this.coordinates = new Array();
+    }
+
+    GPSArray.prototype.push = function(coords) {
+      this.coordinates.push(toWebMerc(coords));
+    }
+
+    GPSArray.prototype.peek = function( ) {
+      return this.coordinates[this.coordinates.length-1];
+    }
+
+    var gps = new GPSArray();
+    gps.push(startingCoords);
+
 
     function newCoordinates(coords) {
       var newLong, newLat;
-      var changeLong = Math.random();
-      var changeLat = Math.random();
+      var changeLong = ((Math.random() * 10000) + 500);
+      var changeLat = ((Math.random() * 10000) + 500);
 
       if(Math.floor((Math.random() * 10) + 1) % 3 === 0) {
         changeLong *= -1;
         changeLat *= -1;
       }
 
-      newLong = changeLong + coords[coords.length-1][0];
-      newLat = changeLat + coords[coords.length-1][1];
+      var longLat = fromWebMerc([(changeLong + coords[coords.length-1][0]), (changeLat + coords[coords.length-1][1])]);
 
+      newLong = longLat[0];
+      newLat = longLat[1];
+
+      // Check to see if we need to loop back around the globe.
       if(newLat < -90)
         newLat = 90;
       if(newLat > 90)
@@ -128,9 +154,8 @@
       if(newLong > 180)
         newLong = -180;
 
-      coords.push(getCoords([newLong, newLat])); // Push the coordinates onto our array in Web Mercator.
-
       console.log(coords[coords.length-1][0] + ", " + coords[coords.length-1][1]);
+      return [newLong, newLat];
     }
 
     setInterval(function() {
@@ -138,37 +163,9 @@
     }, 2000);
 
     function updatePoint() {
-      var iconGeom = pointFeature.getGeometry();      // Grab player icon feature.
-      var pathGeom = lineFeature.getGeometry();     // Grab line segment feature.
-      var pathCoords = pathGeom.getCoordinates();
-
-      newCoordinates(gpsMovement);
-      var lastMovement = pointFeature.getGeometry().getCoordinates(); // Get last coordinates.
-
-
-      var segment = [
-        gpsMovement[gpsMovement.length-2],                        // Last end point, current start point.
-        gpsMovement[gpsMovement.length-1]                         // New end point.
-      ];
-
-      iconGeom.setCoordinates(gpsMovement[gpsMovement.length-1]);        // Update player icon coords.
-
-      pathCoords.unshift(segment);                // Insert new segment at beginning of path array.
-      pathGeom.setCoordinates(pathCoords);
-
-      // temp = Array();
-      // for(var i = 0; i < gpsMovement.length; i++) {
-      //   temp.push(getCoords(gpsMovement[i]));
-      // }
-      // lineFeature.getGeometry().setCoordinates(temp);
-      // pointFeature.getGeometry().setCoordinates(
-      //   [
-      //     temp
-      //   ]
-      // );        // Update icon coords.
-      // var pathCoords = lineFeature.getGeometry().getCoordinates();
-      //
-      // pathCoords.unshift(gpsMovement[gpsMovement.length-1]);
+      gps.push(newCoordinates(gps.coordinates));
+      pointFeature.getGeometry().setCoordinates(gps.peek());        // Update icon coords.
+      lineFeature.getGeometry().setCoordinates([gps.coordinates]);
     }
 
     function GPS() {
